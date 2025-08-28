@@ -1,128 +1,123 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react"
-import { mockUsers } from "@/lib/mock-data"
-import { User } from "@/lib/types"
+import React, { createContext, useContext, useState, useEffect } from 'react'
+import { User } from '@/lib/types'
+import { auth, supabase } from '@/lib/supabase'
+import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 interface AuthContextType {
   user: User | null
+  isAuthenticated: boolean
   isLoading: boolean
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
-  register: (name: string, email: string, password: string) => Promise<{ success: boolean; error?: string }>
-  logout: () => void
-  isAuthenticated: boolean
+  register: (email: string, password: string, name: string) => Promise<{ success: boolean; error?: string }>
+  logout: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-interface AuthProviderProps {
-  children: ReactNode
+// Convert Supabase user to our User type
+const convertSupabaseUser = (supabaseUser: SupabaseUser): User => {
+  return {
+    id: supabaseUser.id,
+    email: supabaseUser.email || '',
+    name: supabaseUser.user_metadata?.name || supabaseUser.email?.split('@')[0] || 'User',
+    avatar: supabaseUser.user_metadata?.avatar_url || null,
+    createdAt: supabaseUser.created_at
+  }
 }
 
-export function AuthProvider({ children }: AuthProviderProps) {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  // Check for existing session on mount
   useEffect(() => {
-    const checkAuth = () => {
-      try {
-        const storedUser = localStorage.getItem('pollapp_user')
-        if (storedUser) {
-          setUser(JSON.parse(storedUser))
+    // Get initial session
+    const getInitialSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session?.user) {
+        setUser(convertSupabaseUser(session.user))
+      }
+      setIsLoading(false)
+    }
+
+    getInitialSession()
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (session?.user) {
+          setUser(convertSupabaseUser(session.user))
+        } else {
+          setUser(null)
         }
-      } catch (error) {
-        console.error('Error checking auth:', error)
-        localStorage.removeItem('pollapp_user')
-      } finally {
         setIsLoading(false)
       }
-    }
+    )
 
-    checkAuth()
+    return () => subscription.unsubscribe()
   }, [])
 
-  const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  const login = async (email: string, password: string) => {
     setIsLoading(true)
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
     try {
-      // Mock authentication - check against mock users
-      const foundUser = mockUsers.find(u => u.email === email)
+      const { data, error } = await auth.signIn(email, password)
       
-      if (!foundUser) {
-        return { success: false, error: "User not found" }
+      if (error) {
+        setIsLoading(false)
+        return { success: false, error: error.message }
       }
       
-      // In a real app, you'd verify the password hash
-      // For demo purposes, accept any password
-      if (password.length < 6) {
-        return { success: false, error: "Invalid password" }
+      if (data.user) {
+        setUser(convertSupabaseUser(data.user))
       }
       
-      // Set user and store in localStorage
-      setUser(foundUser)
-      localStorage.setItem('pollapp_user', JSON.stringify(foundUser))
-      
+      setIsLoading(false)
       return { success: true }
     } catch (error) {
-      return { success: false, error: "Login failed. Please try again." }
-    } finally {
       setIsLoading(false)
+      return { success: false, error: 'Login failed' }
     }
   }
 
-  const register = async (name: string, email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+  const register = async (email: string, password: string, name: string) => {
     setIsLoading(true)
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
     try {
-      // Check if user already exists
-      const existingUser = mockUsers.find(u => u.email === email)
-      if (existingUser) {
-        return { success: false, error: "User with this email already exists" }
+      const { data, error } = await auth.signUp(email, password)
+      
+      if (error) {
+        setIsLoading(false)
+        return { success: false, error: error.message }
       }
       
-      // Create new user
-      const newUser: User = {
-        id: `user_${Date.now()}`,
-        name,
-        email,
-        avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}`,
-        createdAt: new Date(),
-        updatedAt: new Date()
+      // Update user metadata with name
+      if (data.user) {
+        await supabase.auth.updateUser({
+          data: { name }
+        })
+        setUser(convertSupabaseUser(data.user))
       }
       
-      // In a real app, you'd send this to your API
-      // For demo, just add to mock users and set as current user
-      mockUsers.push(newUser)
-      setUser(newUser)
-      localStorage.setItem('pollapp_user', JSON.stringify(newUser))
-      
+      setIsLoading(false)
       return { success: true }
     } catch (error) {
-      return { success: false, error: "Registration failed. Please try again." }
-    } finally {
       setIsLoading(false)
+      return { success: false, error: 'Registration failed' }
     }
   }
 
-  const logout = () => {
+  const logout = async () => {
+    await auth.signOut()
     setUser(null)
-    localStorage.removeItem('pollapp_user')
   }
 
-  const value: AuthContextType = {
+  const value = {
     user,
+    isAuthenticated: !!user,
     isLoading,
     login,
     register,
-    logout,
-    isAuthenticated: !!user
+    logout
   }
 
   return (

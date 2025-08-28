@@ -32,7 +32,7 @@ export default function Home() {
   ]
 
   return (
-    <MainLayout showNavbar={false}>
+    <MainLayout>
       <div className="min-h-screen">
         {/* Hero Section */}
         <section className="bg-gradient-to-br from-blue-50 to-indigo-100 py-20">
