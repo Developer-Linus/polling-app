@@ -11,71 +11,84 @@ import { Badge } from "@/components/ui/badge"
 import { MainLayout } from "@/components/layout/main-layout"
 import { PageWrapper } from "@/components/layout/page-wrapper"
 import { ProtectedRoute } from "@/components/auth/protected-route"
+import { useAuth } from "@/components/auth/auth-provider"
+import { DatabaseService } from "@/lib/database.service"
+import { PollWithUserVote } from "@/lib/database.types"
 import { ArrowLeft, Plus, Trash2, Save } from "lucide-react"
 
-// Mock poll data - replace with real API later
-const mockPollData = {
-  "1": {
-    id: "1",
-    title: "Favorite Programming Language",
-    description: "What's your preferred programming language for web development?",
-    status: "active",
-    createdAt: "2024-01-15",
-    totalVotes: 42,
-    options: [
-      { id: "opt1", text: "JavaScript", votes: 18 },
-      { id: "opt2", text: "Python", votes: 12 },
-      { id: "opt3", text: "TypeScript", votes: 8 },
-      { id: "opt4", text: "Go", votes: 4 }
-    ]
-  }
-}
-
-interface PollOption {
+interface EditablePollOption {
   id: string
   text: string
-  votes: number
-}
-
-interface Poll {
-  id: string
-  title: string
-  description: string
-  status: string
-  createdAt: string
-  totalVotes: number
-  options: PollOption[]
+  vote_count: number
+  position: number
 }
 
 export default function EditPollPage() {
   const params = useParams()
   const router = useRouter()
+  const { user } = useAuth()
   const pollId = params.id as string
   
-  const [poll, setPoll] = useState<Poll | null>(null)
+  const [poll, setPoll] = useState<PollWithUserVote | null>(null)
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
-  const [options, setOptions] = useState<PollOption[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  const [options, setOptions] = useState<EditablePollOption[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [isSaving, setIsSaving] = useState(false)
 
+  // Load poll data on component mount
   useEffect(() => {
-    // Mock data loading - replace with real API call
-    const pollData = mockPollData[pollId as keyof typeof mockPollData]
-    if (pollData) {
-      setPoll(pollData)
-      setTitle(pollData.title)
-      setDescription(pollData.description)
-      setOptions([...pollData.options])
+    const loadPoll = async () => {
+      if (!user) return
+      
+      setIsLoading(true)
+      setError(null)
+      
+      try {
+        const pollData = await DatabaseService.getPollById(pollId, user.id)
+        
+        if (!pollData) {
+          setError("Poll not found")
+          return
+        }
+        
+        // Check if user owns this poll
+        if (pollData.created_by !== user.id) {
+          setError("You don't have permission to edit this poll")
+          return
+        }
+        
+        setPoll(pollData)
+        setTitle(pollData.title)
+        setDescription(pollData.description || "")
+        
+        // Convert poll options to editable format
+        const editableOptions: EditablePollOption[] = pollData.poll_options.map(option => ({
+          id: option.id,
+          text: option.text,
+          vote_count: option.vote_count,
+          position: option.position
+        }))
+        setOptions(editableOptions)
+        
+      } catch (err) {
+        console.error("Error loading poll:", err)
+        setError("Failed to load poll")
+      } finally {
+        setIsLoading(false)
+      }
     }
-    setIsLoading(false)
-  }, [pollId])
+
+    loadPoll()
+  }, [pollId, user])
 
   const addOption = () => {
-    const newOption: PollOption = {
+    const newOption: EditablePollOption = {
       id: `opt${Date.now()}`,
       text: "",
-      votes: 0
+      vote_count: 0,
+      position: options.length
     }
     setOptions([...options, newOption])
   }
@@ -94,42 +107,70 @@ export default function EditPollPage() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (!isFormValid || !user || !poll) return
+    
     setIsSaving(true)
-
-    // Mock poll update - replace with real API later
-    const updatedPoll = {
-      ...poll!,
-      title,
-      description,
-      options: options.filter(option => option.text.trim() !== "")
-    }
-
-    setTimeout(() => {
-      console.log("Updating poll:", updatedPoll)
-      setIsSaving(false)
+    setError(null)
+    
+    try {
+      // Filter out empty options and prepare for update
+      const validOptions = options
+        .filter(opt => opt.text.trim() !== "")
+        .map((opt, index) => ({
+          id: opt.id,
+          text: opt.text.trim(),
+          position: index
+        }))
+      
+      await DatabaseService.updatePoll(pollId, {
+        title: title.trim(),
+        description: description.trim() || null,
+        options: validOptions
+      }, user.id)
+      
       router.push(`/polls/${pollId}`)
-    }, 1000)
-  }
-
-  const togglePollStatus = () => {
-    if (poll) {
-      const newStatus = poll.status === "active" ? "closed" : "active"
-      setPoll({ ...poll, status: newStatus })
+    } catch (err) {
+      console.error("Error saving poll:", err)
+      const errorMessage = err instanceof Error ? err.message : "Failed to save poll changes"
+      setError(errorMessage)
+    } finally {
+      setIsSaving(false)
     }
   }
 
-  const deletePoll = () => {
+  const togglePollStatus = async () => {
+    if (!poll || !user) return
+    
+    try {
+      const newStatus = poll.status === 'active' ? 'closed' : 'active'
+      const isActive = newStatus === 'active'
+      await DatabaseService.updatePollStatus(pollId, isActive, user.id)
+      setPoll({ ...poll, status: newStatus })
+    } catch (err) {
+      console.error("Error toggling poll status:", err)
+      setError("Failed to update poll status")
+    }
+  }
+
+  const deletePoll = async () => {
+    if (!user || !poll) return
+    
     if (confirm("Are you sure you want to delete this poll? This action cannot be undone.")) {
-      // Mock poll deletion - replace with real API later
-      console.log("Deleting poll:", pollId)
-      router.push("/dashboard")
+      try {
+        await DatabaseService.deletePoll(pollId, user.id)
+        router.push("/dashboard")
+      } catch (err) {
+        console.error("Error deleting poll:", err)
+        setError("Failed to delete poll")
+      }
     }
   }
 
   const isFormValid = title.trim() !== "" && 
     options.filter(option => option.text.trim() !== "").length >= 2
 
-  const hasVotes = poll && poll.totalVotes > 0
+  const hasVotes = poll && poll.total_votes > 0
 
   if (isLoading) {
     return (
@@ -142,12 +183,16 @@ export default function EditPollPage() {
     )
   }
 
-  if (!poll) {
+  if (error || !poll) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Poll Not Found</h2>
-          <p className="text-gray-600 mb-4">The poll you're trying to edit doesn't exist.</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">
+            {error === "You don't have permission to edit this poll" ? "Access Denied" : "Poll Not Found"}
+          </h2>
+          <p className="text-gray-600 mb-4">
+            {error || "The poll you're trying to edit doesn't exist."}
+          </p>
           <Link href="/dashboard">
             <Button>Back to Dashboard</Button>
           </Link>
@@ -171,7 +216,7 @@ export default function EditPollPage() {
               <h1 className="text-3xl font-bold text-gray-900">Edit Poll</h1>
               <p className="text-gray-600 mt-2">Make changes to your poll</p>
             </div>
-            <Badge variant={poll.status === "active" ? "default" : "secondary"}>
+            <Badge variant={poll.status === 'active' ? "default" : "secondary"}>
               {poll.status}
             </Badge>
           </div>
@@ -182,9 +227,9 @@ export default function EditPollPage() {
           <CardContent className="pt-6">
             <div className="flex items-center justify-between">
               <div className="text-sm text-gray-600">
-                <span className="font-medium">{poll.totalVotes}</span> total votes
+                <span className="font-medium">{poll.total_votes}</span> total votes
                 <span className="mx-2">•</span>
-                Created {poll.createdAt}
+                Created {new Date(poll.created_at).toLocaleDateString()}
               </div>
               <div className="flex gap-2">
                 <Button
@@ -192,7 +237,7 @@ export default function EditPollPage() {
                   size="sm"
                   onClick={togglePollStatus}
                 >
-                  {poll.status === "active" ? "Close Poll" : "Reopen Poll"}
+                  {poll.status === 'active' ? "Close Poll" : "Reopen Poll"}
                 </Button>
                 <Button
                   variant="outline"
@@ -221,6 +266,12 @@ export default function EditPollPage() {
           </CardHeader>
           <form onSubmit={handleSave}>
             <CardContent className="space-y-6">
+              {/* Error Display */}
+              {error && (
+                <div className="bg-red-50 border border-red-200 rounded-md p-4">
+                  <p className="text-red-800 text-sm">{error}</p>
+                </div>
+              )}
               {/* Poll Title */}
               <div className="space-y-2">
                 <Label htmlFor="title">Poll Title *</Label>
@@ -283,9 +334,9 @@ export default function EditPollPage() {
                           </Button>
                         )}
                       </div>
-                      {hasVotes && option.votes > 0 && (
+                      {hasVotes && option.vote_count > 0 && (
                         <p className="text-xs text-gray-500 ml-1">
-                          Current votes: {option.votes}
+                          Current votes: {option.vote_count}
                         </p>
                       )}
                     </div>

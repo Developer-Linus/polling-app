@@ -11,7 +11,7 @@ import { ProtectedRoute } from "@/components/auth/protected-route"
 import { useAuth } from "@/components/auth/auth-provider"
 import { DatabaseService } from "@/lib/database.service"
 import { Poll } from "@/lib/database.types"
-import { Plus, BarChart3, Users, Eye } from "lucide-react"
+import { Plus, BarChart3, Users, Eye, Edit, Trash2 } from "lucide-react"
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -31,6 +31,7 @@ export default function DashboardPage() {
   const [polls, setPolls] = useState<Poll[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [deletingPollId, setDeletingPollId] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchPolls = async () => {
@@ -51,6 +52,28 @@ export default function DashboardPage() {
 
     fetchPolls()
   }, [user?.id])
+
+  const handleDeletePoll = async (pollId: string) => {
+    if (!confirm('Are you sure you want to delete this poll? This action cannot be undone.')) {
+      return
+    }
+
+    if (!user?.id) {
+      setError('You must be logged in to delete polls')
+      return
+    }
+
+    try {
+      setDeletingPollId(pollId)
+      await DatabaseService.deletePoll(pollId, user.id)
+      setPolls(polls.filter(poll => poll.id !== pollId))
+    } catch (err) {
+      console.error('Failed to delete poll:', err)
+      setError(err instanceof Error ? err.message : 'Failed to delete poll')
+    } finally {
+      setDeletingPollId(null)
+    }
+  }
 
   return (
     <ProtectedRoute>
@@ -175,9 +198,26 @@ export default function DashboardPage() {
                       <div className="flex gap-2">
                         <Link href={`/polls/${poll.id}`}>
                           <Button variant="outline" size="sm">
+                            <Eye className="h-4 w-4 mr-1" />
                             View
                           </Button>
                         </Link>
+                        <Link href={`/polls/${poll.id}/edit`}>
+                          <Button variant="outline" size="sm">
+                            <Edit className="h-4 w-4 mr-1" />
+                            Edit
+                          </Button>
+                        </Link>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleDeletePoll(poll.id)}
+                          disabled={deletingPollId === poll.id}
+                          className="text-red-600 hover:text-red-700 hover:border-red-300"
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          {deletingPollId === poll.id ? 'Deleting...' : 'Delete'}
+                        </Button>
                       </div>
                     </div>
                   </CardContent>

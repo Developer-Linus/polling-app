@@ -233,10 +233,13 @@ export class DatabaseService {
   /**
    * Update an existing poll
    */
-  static async updatePoll(id: string, updates: UpdatePollRequest, userId: string): Promise<Poll> {
+  static async updatePoll(id: string, updates: UpdatePollRequest & { options?: { id: string; text: string; position: number }[] }, userId: string): Promise<Poll> {
+    const { options, ...pollUpdates } = updates;
+    
+    // Update poll basic info
     const { data: poll, error } = await supabase
       .from('polls')
-      .update(updates)
+      .update(pollUpdates)
       .eq('id', id)
       .eq('created_by', userId) // Ensure user owns the poll
       .select()
@@ -250,7 +253,57 @@ export class DatabaseService {
       throw new Error('Poll not found or you do not have permission to update it');
     }
 
+    // Update options if provided
+    if (options) {
+      // Delete existing options
+      await supabase
+        .from('poll_options')
+        .delete()
+        .eq('poll_id', id);
+
+      // Insert updated options
+      const optionsToInsert = options.map(option => {
+        const baseOption = {
+          poll_id: id,
+          text: option.text,
+          position: option.position
+        };
+        
+        // Only include id for existing options (not starting with 'opt')
+        if (!option.id.startsWith('opt')) {
+          return { ...baseOption, id: option.id };
+        }
+        
+        return baseOption;
+      });
+
+      const { error: optionsError } = await supabase
+        .from('poll_options')
+        .insert(optionsToInsert);
+
+      if (optionsError) {
+        throw new Error(`Failed to update poll options: ${optionsError.message}`);
+      }
+    }
+
     return poll;
+  }
+
+  /**
+   * Update poll status
+   */
+  static async updatePollStatus(id: string, isActive: boolean, userId?: string): Promise<void> {
+    const status = isActive ? 'active' : 'closed';
+    
+    const { error } = await supabase
+      .from('polls')
+      .update({ status })
+      .eq('id', id)
+      .eq('created_by', userId || '');
+
+    if (error) {
+      throw new Error(`Failed to update poll status: ${error.message}`);
+    }
   }
 
   /**
