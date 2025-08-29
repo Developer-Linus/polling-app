@@ -1,11 +1,19 @@
 "use client"
 
+// React imports
 import { useState } from "react"
+
+// Next.js imports
 import { useRouter } from "next/navigation"
+import Link from "next/link"
+
+// Third-party imports
 import { useForm, Controller } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import Link from "next/link"
+import { Eye, EyeOff, Mail, Lock, User } from "lucide-react"
+
+// Local imports
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -14,7 +22,6 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { MainLayout } from "@/components/layout/main-layout"
 import { PageWrapper } from "@/components/layout/page-wrapper"
 import { useAuth } from "@/components/auth/auth-provider"
-import { Eye, EyeOff, Mail, Lock, User } from "lucide-react"
 
 const registerSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),

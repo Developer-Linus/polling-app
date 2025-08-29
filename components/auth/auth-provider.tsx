@@ -64,8 +64,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data, error } = await auth.signIn(email, password)
       
       if (error) {
+        console.error('Login error:', error)
         setIsLoading(false)
-        return { success: false, error: error.message }
+        
+        // Provide user-friendly error messages
+        let userMessage = 'Login failed. Please try again.'
+        if (error.message.includes('Invalid login credentials')) {
+          userMessage = 'Invalid email or password. Please check your credentials.'
+        } else if (error.message.includes('Email not confirmed')) {
+          userMessage = 'Please check your email and confirm your account before signing in.'
+        } else if (error.message.includes('Too many requests')) {
+          userMessage = 'Too many login attempts. Please wait a moment before trying again.'
+        }
+        
+        return { success: false, error: userMessage }
       }
       
       if (data.user) {
@@ -75,8 +87,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false)
       return { success: true }
     } catch (error) {
+      console.error('Unexpected login error:', error)
       setIsLoading(false)
-      return { success: false, error: 'Login failed' }
+      return { success: false, error: 'An unexpected error occurred. Please try again.' }
     }
   }
 
@@ -86,8 +99,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const { data, error } = await auth.signUp(email, password)
       
       if (error) {
+        console.error('Registration error:', error)
         setIsLoading(false)
-        return { success: false, error: error.message }
+        
+        // Provide user-friendly error messages
+        let userMessage = 'Registration failed. Please try again.'
+        if (error.message.includes('User already registered')) {
+          userMessage = 'An account with this email already exists. Please sign in instead.'
+        } else if (error.message.includes('Password should be at least')) {
+          userMessage = 'Password must be at least 6 characters long.'
+        } else if (error.message.includes('Invalid email')) {
+          userMessage = 'Please enter a valid email address.'
+        } else if (error.message.includes('Signup is disabled')) {
+          userMessage = 'Account registration is currently disabled. Please contact support.'
+        }
+        
+        return { success: false, error: userMessage }
       }
       
       // Update user metadata with name
@@ -101,8 +128,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false)
       return { success: true }
     } catch (error) {
+      console.error('Unexpected registration error:', error)
       setIsLoading(false)
-      return { success: false, error: 'Registration failed' }
+      return { success: false, error: 'An unexpected error occurred during registration. Please try again.' }
     }
   }
 

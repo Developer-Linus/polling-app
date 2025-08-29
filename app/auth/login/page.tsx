@@ -1,11 +1,19 @@
 "use client"
 
+// React imports
 import { useState } from "react"
+
+// Next.js imports
 import { useRouter } from "next/navigation"
+import Link from "next/link"
+
+// Third-party imports
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import Link from "next/link"
+import { Eye, EyeOff, Mail, Lock } from "lucide-react"
+
+// Local imports
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -13,7 +21,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { MainLayout } from "@/components/layout/main-layout"
 import { PageWrapper } from "@/components/layout/page-wrapper"
 import { useAuth } from "@/components/auth/auth-provider"
-import { Eye, EyeOff, Mail, Lock } from "lucide-react"
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),

@@ -4,8 +4,24 @@ import { createBrowserClient } from '@supabase/ssr'
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables')
+// Validate environment variables at startup
+if (!supabaseUrl || supabaseUrl === 'your-project-url-here') {
+  throw new Error(
+    'Missing or invalid NEXT_PUBLIC_SUPABASE_URL. Please set your Supabase project URL in .env.local'
+  )
+}
+
+if (!supabaseAnonKey || supabaseAnonKey === 'your-anon-key-here') {
+  throw new Error(
+    'Missing or invalid NEXT_PUBLIC_SUPABASE_ANON_KEY. Please set your Supabase anon key in .env.local'
+  )
+}
+
+// Validate URL format
+if (!supabaseUrl.startsWith('https://') || !supabaseUrl.includes('.supabase.co')) {
+  throw new Error(
+    'Invalid NEXT_PUBLIC_SUPABASE_URL format. Expected: https://your-project-ref.supabase.co'
+  )
 }
 
 // For client-side usage
