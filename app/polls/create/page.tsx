@@ -9,6 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { MainLayout } from "@/components/layout/main-layout"
 import { PageWrapper } from "@/components/layout/page-wrapper"
 import { ProtectedRoute } from "@/components/auth/protected-route"
+import { useAuth } from "@/components/auth/auth-provider"
+import { DatabaseService } from "@/lib/database.service"
 import { Plus, Trash2, ArrowLeft } from "lucide-react"
 import Link from "next/link"
 
@@ -19,6 +21,7 @@ interface PollOption {
 
 export default function CreatePollPage() {
   const router = useRouter()
+  const { user } = useAuth()
   const [title, setTitle] = useState("")
   const [description, setDescription] = useState("")
   const [options, setOptions] = useState<PollOption[]>([
@@ -26,6 +29,8 @@ export default function CreatePollPage() {
     { id: "2", text: "" }
   ])
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
 
   const addOption = () => {
     const newOption: PollOption = {
@@ -49,21 +54,40 @@ export default function CreatePollPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
-
-    // Mock poll creation - replace with real API later
-    const pollData = {
-      title,
-      description,
-      options: options.filter(option => option.text.trim() !== "")
+    if (!user) {
+      setError("You must be logged in to create a poll")
+      return
     }
 
-    setTimeout(() => {
-      console.log("Creating poll:", pollData)
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      const validOptions = options
+        .filter(option => option.text.trim() !== "")
+        .map(option => option.text.trim())
+
+      const pollData = {
+        title: title.trim(),
+        description: description.trim() || null,
+        options: validOptions
+      }
+
+      const createdPoll = await DatabaseService.createPoll(pollData, user.id)
+      
+      // Show success message
+      setSuccess(`Poll "${createdPoll.title}" created successfully!`)
+      
+      // Redirect to dashboard after a brief delay
+      setTimeout(() => {
+        router.push('/dashboard')
+      }, 2000)
+    } catch (err) {
+      console.error('Failed to create poll:', err)
+      setError(err instanceof Error ? err.message : 'Failed to create poll. Please try again.')
+    } finally {
       setIsLoading(false)
-      // Redirect to dashboard or poll view
-      router.push("/dashboard")
-    }, 1000)
+    }
   }
 
   const isFormValid = title.trim() !== "" && 
@@ -92,6 +116,20 @@ export default function CreatePollPage() {
           </CardHeader>
           <form onSubmit={handleSubmit}>
             <CardContent className="space-y-6">
+              {/* Error Message */}
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md">
+                  {error}
+                </div>
+              )}
+              
+              {/* Success Message */}
+              {success && (
+                <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-md">
+                  {success}
+                </div>
+              )}
+              
               {/* Poll Title */}
               <div className="space-y-2">
                 <Label htmlFor="title">Poll Title *</Label>
@@ -100,6 +138,7 @@ export default function CreatePollPage() {
                   placeholder="Enter your poll title"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
+                  disabled={isLoading || !!success}
                   required
                 />
               </div>
@@ -112,6 +151,7 @@ export default function CreatePollPage() {
                   placeholder="Add a description for your poll"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
+                  disabled={isLoading || !!success}
                 />
               </div>
 
@@ -124,6 +164,7 @@ export default function CreatePollPage() {
                     variant="outline"
                     size="sm"
                     onClick={addOption}
+                    disabled={isLoading || !!success}
                     className="flex items-center gap-2"
                   >
                     <Plus className="h-4 w-4" />
@@ -139,17 +180,19 @@ export default function CreatePollPage() {
                           placeholder={`Option ${index + 1}`}
                           value={option.text}
                           onChange={(e) => updateOption(option.id, e.target.value)}
+                          disabled={isLoading || !!success}
                         />
                       </div>
                       {options.length > 2 && (
                         <Button
                           type="button"
                           variant="outline"
-                          size="icon"
+                          size="sm"
                           onClick={() => removeOption(option.id)}
-                          className="text-red-600 hover:text-red-800"
+                          disabled={isLoading || !!success}
+                          className="text-red-600 hover:text-red-700"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <X className="h-4 w-4" />
                         </Button>
                       )}
                     </div>
@@ -166,9 +209,9 @@ export default function CreatePollPage() {
                 </Link>
                 <Button 
                   type="submit" 
-                  disabled={!isFormValid || isLoading}
+                  disabled={!isFormValid || isLoading || !!success}
                 >
-                  {isLoading ? "Creating Poll..." : "Create Poll"}
+                  {success ? "Poll Created Successfully!" : isLoading ? "Creating Poll..." : "Create Poll"}
                 </Button>
               </div>
             </CardContent>

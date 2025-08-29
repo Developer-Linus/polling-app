@@ -1,96 +1,90 @@
-// User and Authentication Types
+// Re-export database types for consistency
+export type {
+  Poll,
+  PollInsert,
+  PollUpdate,
+  PollOption,
+  PollOptionInsert,
+  PollOptionUpdate,
+  Vote,
+  VoteInsert,
+  VoteUpdate,
+  PollResult,
+  PollWithOptions,
+  PollWithResults,
+  PollWithUserVote,
+  CreatePollRequest,
+  UpdatePollRequest,
+  VoteRequest,
+  PollsResponse,
+  PollFilters,
+  PollSortBy,
+  SortOrder,
+  PollSort,
+  PaginationParams,
+  DatabaseError,
+  PollFormData,
+  PollOptionFormData,
+  PollStats,
+  UserPollStats
+} from './database.types';
+
+// User types (for Supabase Auth)
 export interface User {
-  id: string
-  name: string
-  email: string
-  avatar?: string
-  createdAt: string
-  updatedAt: string
+  id: string;
+  email: string;
+  name?: string;
+  created_at: string;
 }
 
 export interface AuthUser {
-  id: string
-  name: string
-  email: string
-  avatar?: string
+  id: string;
+  email: string;
+  name?: string;
 }
 
+// Authentication types
 export interface LoginCredentials {
-  email: string
-  password: string
+  email: string;
+  password: string;
 }
 
 export interface RegisterData {
-  name: string
-  email: string
-  password: string
-  confirmPassword: string
+  name: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+  agreeToTerms: boolean;
 }
 
 export interface AuthResponse {
-  user: AuthUser
-  token: string
-  refreshToken: string
+  user: AuthUser | null;
+  error: string | null;
 }
 
-// Poll Types
-export interface PollOption {
-  id: string
-  text: string
-  votes: number
-}
+// Legacy poll types (deprecated - use database types instead)
+/** @deprecated Use Poll from database.types.ts */
+export type PollStatus = 'active' | 'closed' | 'draft';
 
-export interface Poll {
-  id: string
-  title: string
-  description?: string
-  status: PollStatus
-  createdAt: string
-  updatedAt: string
-  createdBy: string
-  createdByUser?: User
-  totalVotes: number
-  options: PollOption[]
-  allowMultipleVotes?: boolean
-  expiresAt?: string
-  isPublic: boolean
-  shareUrl?: string
-}
-
-export type PollStatus = 'draft' | 'active' | 'closed' | 'expired'
-
+/** @deprecated Use CreatePollRequest from database.types.ts */
 export interface CreatePollData {
-  title: string
-  description?: string
-  options: Omit<PollOption, 'id' | 'votes'>[]
-  allowMultipleVotes?: boolean
-  expiresAt?: string
-  isPublic?: boolean
+  title: string;
+  description?: string;
+  options: string[];
+  expires_at?: string;
 }
 
+/** @deprecated Use UpdatePollRequest from database.types.ts */
 export interface UpdatePollData {
-  title?: string
-  description?: string
-  options?: PollOption[]
-  status?: PollStatus
-  allowMultipleVotes?: boolean
-  expiresAt?: string
-  isPublic?: boolean
+  title?: string;
+  description?: string;
+  status?: PollStatus;
+  expires_at?: string;
 }
 
-// Vote Types
-export interface Vote {
-  id: string
-  pollId: string
-  optionId: string
-  userId?: string
-  ipAddress?: string
-  createdAt: string
-}
-
+/** @deprecated Use VoteRequest from database.types.ts */
 export interface VoteData {
-  pollId: string
-  optionId: string
+  option_id: string;
 }
 
 // API Response Types

@@ -8,83 +8,61 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { MainLayout } from "@/components/layout/main-layout"
 import { PageWrapper } from "@/components/layout/page-wrapper"
+import { useAuth } from "@/components/auth/auth-provider"
+import { DatabaseService } from "@/lib/database.service"
 import { ArrowLeft, Share2, Users, Calendar } from "lucide-react"
-
-// Mock poll data - replace with real API later
-const mockPollData = {
-  "1": {
-    id: "1",
-    title: "Favorite Programming Language",
-    description: "What's your preferred programming language for web development?",
-    status: "active",
-    createdAt: "2024-01-15",
-    createdBy: "John Doe",
-    totalVotes: 42,
-    options: [
-      { id: "opt1", text: "JavaScript", votes: 18 },
-      { id: "opt2", text: "Python", votes: 12 },
-      { id: "opt3", text: "TypeScript", votes: 8 },
-      { id: "opt4", text: "Go", votes: 4 }
-    ]
-  }
-}
-
-interface PollOption {
-  id: string
-  text: string
-  votes: number
-}
-
-interface Poll {
-  id: string
-  title: string
-  description: string
-  status: string
-  createdAt: string
-  createdBy: string
-  totalVotes: number
-  options: PollOption[]
-}
+import type { PollWithUserVote } from "@/lib/database.types"
 
 export default function PollViewPage() {
   const params = useParams()
+  const { user } = useAuth()
   const pollId = params.id as string
-  const [poll, setPoll] = useState<Poll | null>(null)
+  const [poll, setPoll] = useState<PollWithUserVote | null>(null)
   const [selectedOption, setSelectedOption] = useState<string | null>(null)
-  const [hasVoted, setHasVoted] = useState(false)
   const [isVoting, setIsVoting] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    // Mock data loading - replace with real API call
-    const pollData = mockPollData[pollId as keyof typeof mockPollData]
-    if (pollData) {
-      setPoll(pollData)
+    const fetchPoll = async () => {
+      try {
+        setIsLoading(true)
+        const pollData = await DatabaseService.getPollById(pollId, user?.id)
+        if (pollData) {
+          setPoll(pollData)
+        } else {
+          setError("Poll not found")
+        }
+      } catch (err) {
+        console.error('Failed to fetch poll:', err)
+        setError("Failed to load poll")
+      } finally {
+        setIsLoading(false)
+      }
     }
-  }, [pollId])
+
+    fetchPoll()
+  }, [pollId, user?.id])
 
   const handleVote = async () => {
-    if (!selectedOption || !poll) return
+    if (!selectedOption || !poll || !user) return
     
     setIsVoting(true)
     
-    // Mock voting - replace with real API call
-    setTimeout(() => {
-      console.log("Voting for option:", selectedOption)
-      setHasVoted(true)
-      setIsVoting(false)
+    try {
+      await DatabaseService.vote(poll.id, { option_ids: [selectedOption] }, user.id)
       
-      // Update poll data with new vote
-      const updatedPoll = {
-        ...poll,
-        totalVotes: poll.totalVotes + 1,
-        options: poll.options.map(option => 
-          option.id === selectedOption 
-            ? { ...option, votes: option.votes + 1 }
-            : option
-        )
+      // Refresh poll data to get updated vote counts
+      const updatedPoll = await DatabaseService.getPollById(poll.id, user.id)
+      if (updatedPoll) {
+        setPoll(updatedPoll)
       }
-      setPoll(updatedPoll)
-    }, 1000)
+    } catch (err) {
+      console.error('Failed to vote:', err)
+      setError(err instanceof Error ? err.message : 'Failed to vote. Please try again.')
+    } finally {
+      setIsVoting(false)
+    }
   }
 
   const getVotePercentage = (votes: number, total: number) => {
@@ -97,17 +75,36 @@ export default function PollViewPage() {
     alert("Poll link copied to clipboard!")
   }
 
-  if (!poll) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Poll Not Found</h2>
-          <p className="text-gray-600 mb-4">The poll you're looking for doesn't exist.</p>
-          <Link href="/dashboard">
-            <Button>Back to Dashboard</Button>
-          </Link>
-        </div>
-      </div>
+      <MainLayout>
+        <PageWrapper maxWidth="xl">
+          <div className="flex items-center justify-center min-h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p className="text-gray-600">Loading poll...</p>
+            </div>
+          </div>
+        </PageWrapper>
+      </MainLayout>
+    )
+  }
+
+  if (error || !poll) {
+    return (
+      <MainLayout>
+        <PageWrapper maxWidth="xl">
+          <div className="flex items-center justify-center min-h-64">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Poll Not Found</h2>
+              <p className="text-gray-600 mb-4">{error || "The poll you're looking for doesn't exist."}</p>
+              <Link href="/dashboard">
+                <Button>Back to Dashboard</Button>
+              </Link>
+            </div>
+          </div>
+        </PageWrapper>
+      </MainLayout>
     )
   }
 
@@ -141,13 +138,12 @@ export default function PollViewPage() {
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-1">
                   <Users className="h-4 w-4" />
-                  <span>{poll.totalVotes} votes</span>
+                  <span>{poll.total_votes} votes</span>
                 </div>
                 <div className="flex items-center gap-1">
                   <Calendar className="h-4 w-4" />
-                  <span>Created {poll.createdAt}</span>
+                  <span>Created {new Date(poll.created_at).toLocaleDateString()}</span>
                 </div>
-                <span>by {poll.createdBy}</span>
               </div>
               <Badge variant={poll.status === "active" ? "default" : "secondary"}>
                 {poll.status}
@@ -156,58 +152,69 @@ export default function PollViewPage() {
           </CardContent>
         </Card>
 
+        {/* Error Message */}
+        {error && (
+          <Card className="mb-6 border-red-200 bg-red-50">
+            <CardContent className="pt-6">
+              <p className="text-red-700">{error}</p>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Voting Section */}
         <Card>
           <CardHeader>
             <CardTitle>
-              {hasVoted ? "Poll Results" : "Cast Your Vote"}
+              {!poll.user_can_vote ? "Poll Results" : "Cast Your Vote"}
             </CardTitle>
             <CardDescription>
-              {hasVoted 
-                ? "Thank you for voting! Here are the current results."
+              {!poll.user_can_vote 
+                ? "Here are the current results."
                 : "Select an option below to vote."
               }
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {poll.options.map((option) => {
-              const percentage = getVotePercentage(option.votes, poll.totalVotes)
+            {poll.poll_options.map((option) => {
+              const percentage = getVotePercentage(option.vote_count || 0, poll.total_votes)
               const isSelected = selectedOption === option.id
+              const hasUserVoted = option.user_voted || false
               
               return (
                 <div key={option.id} className="space-y-2">
                   <div 
                     className={`p-4 rounded-lg border cursor-pointer transition-colors ${
-                      hasVoted
+                      !poll.user_can_vote
                         ? "bg-gray-50 cursor-default"
                         : isSelected
                         ? "bg-blue-50 border-blue-300"
+                        : hasUserVoted
+                        ? "bg-green-50 border-green-300"
                         : "bg-white hover:bg-gray-50 border-gray-200"
                     }`}
-                    onClick={() => !hasVoted && setSelectedOption(option.id)}
+                    onClick={() => poll.user_can_vote && setSelectedOption(option.id)}
                   >
                     <div className="flex justify-between items-center">
-                      <span className="font-medium">{option.text}</span>
-                      {hasVoted && (
-                        <span className="text-sm text-gray-600">
-                          {option.votes} votes ({percentage}%)
-                        </span>
-                      )}
+                      <span className="font-medium">
+                        {option.text}
+                        {hasUserVoted && <span className="ml-2 text-green-600">✓</span>}
+                      </span>
+                      <span className="text-sm text-gray-600">
+                        {option.vote_count || 0} votes ({percentage}%)
+                      </span>
                     </div>
-                    {hasVoted && (
-                      <div className="mt-2 bg-gray-200 rounded-full h-2">
-                        <div 
-                          className="bg-blue-600 h-2 rounded-full transition-all duration-500"
-                          style={{ width: `${percentage}%` }}
-                        />
-                      </div>
-                    )}
+                    <div className="mt-2 bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-blue-600 h-2 rounded-full transition-all duration-500"
+                        style={{ width: `${percentage}%` }}
+                      />
+                    </div>
                   </div>
                 </div>
               )
             })}
             
-            {!hasVoted && poll.status === "active" && (
+            {poll.user_can_vote && user && (
               <div className="pt-4">
                 <Button 
                   onClick={handleVote}
@@ -219,7 +226,21 @@ export default function PollViewPage() {
               </div>
             )}
             
-            {poll.status !== "active" && !hasVoted && (
+            {!user && (
+              <div className="pt-4 text-center text-gray-600">
+                <Link href="/auth/login" className="text-blue-600 hover:text-blue-800">
+                  Sign in to vote
+                </Link>
+              </div>
+            )}
+            
+            {user && !poll.user_can_vote && poll.status === "active" && (
+              <div className="pt-4 text-center text-gray-600">
+                You have already voted in this poll.
+              </div>
+            )}
+            
+            {poll.status !== "active" && (
               <div className="pt-4 text-center text-gray-600">
                 This poll is no longer accepting votes.
               </div>
