@@ -15,7 +15,9 @@ import {
   X, 
   Home,
   Settings,
-  LogOut
+  LogOut,
+  LogIn,
+  UserPlus
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -73,7 +75,7 @@ export function Navbar() {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
-            {navigationItems.map((item) => {
+            {isAuthenticated && navigationItems.map((item) => {
               const Icon = item.icon
               return (
                 <Link
@@ -96,42 +98,26 @@ export function Navbar() {
           {/* User Menu */}
           <div className="flex items-center space-x-4">
             {isAuthenticated && user ? (
-              <div className="flex items-center space-x-3">
-                <div className="hidden sm:flex flex-col items-end">
-                  <span className="text-sm font-medium text-gray-900">{user.name}</span>
-                  <span className="text-xs text-gray-500">{user.email}</span>
-                </div>
-                <div className="relative">
-                  <button className="flex items-center space-x-2 p-2 rounded-full hover:bg-gray-100">
-                    {user.avatar ? (
-                      <img
-                        src={user.avatar}
-                        alt={user.name}
-                        className="w-8 h-8 rounded-full"
-                      />
-                    ) : (
-                      <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                        <User className="h-4 w-4 text-gray-600" />
-                      </div>
-                    )}
-                  </button>
-                </div>
-                <LogoutButton 
-                  variant="ghost" 
-                  size="sm" 
-                  className="hidden sm:flex items-center space-x-2"
-                />
-              </div>
+              <LogoutButton 
+                variant="ghost" 
+                size="sm" 
+                className="flex items-center space-x-2"
+              >
+                <LogOut className="h-4 w-4" />
+                <span>Logout</span>
+              </LogoutButton>
             ) : (
               <div className="flex items-center space-x-2">
                 <Link href="/auth/login">
-                  <Button variant="ghost" size="sm">
-                    Sign In
+                  <Button variant="ghost" size="sm" className="flex items-center space-x-2">
+                    <LogIn className="h-4 w-4" />
+                    <span>Sign In</span>
                   </Button>
                 </Link>
                 <Link href="/auth/register">
-                  <Button size="sm">
-                    Sign Up
+                  <Button size="sm" className="flex items-center space-x-2">
+                    <UserPlus className="h-4 w-4" />
+                    <span>Sign Up</span>
                   </Button>
                 </Link>
               </div>
@@ -156,39 +142,55 @@ export function Navbar() {
       {isMobileMenuOpen && (
         <div className="md:hidden border-t border-gray-200 bg-white">
           <div className="px-2 pt-2 pb-3 space-y-1">
-            {navigationItems.map((item) => {
-              const Icon = item.icon
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center space-x-3 px-3 py-2 rounded-md text-base font-medium",
-                    isActive(item.href)
-                      ? "bg-blue-100 text-blue-700"
-                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-                  )}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  <Icon className="h-5 w-5" />
-                  <span>{item.label}</span>
-                </Link>
-              )
-            })}
-            
-            {user && (
+            {isAuthenticated ? (
               <>
-                <div className="border-t border-gray-200 pt-3 mt-3">
-                  <div className="px-3 py-2">
-                    <div className="text-base font-medium text-gray-900">{user.name}</div>
-                    <div className="text-sm text-gray-500">{user.email}</div>
-                  </div>
-                </div>
+                {navigationItems.map((item) => {
+                  const Icon = item.icon
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      className={cn(
+                        "flex items-center space-x-3 px-3 py-2 rounded-md text-base font-medium",
+                        isActive(item.href)
+                          ? "bg-blue-100 text-blue-700"
+                          : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                      )}
+                      onClick={() => setIsMobileMenuOpen(false)}
+                    >
+                      <Icon className="h-5 w-5" />
+                      <span>{item.label}</span>
+                    </Link>
+                  )
+                })}
                 <LogoutButton 
                   variant="ghost" 
                   size="sm" 
                   className="flex items-center space-x-3 px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 w-full"
-                />
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <LogOut className="h-5 w-5" />
+                  <span>Logout</span>
+                </LogoutButton>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/auth/login"
+                  className="flex items-center space-x-3 px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <LogIn className="h-5 w-5" />
+                  <span>Sign In</span>
+                </Link>
+                <Link
+                  href="/auth/register"
+                  className="flex items-center space-x-3 px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <UserPlus className="h-5 w-5" />
+                  <span>Sign Up</span>
+                </Link>
               </>
             )}
           </div>
