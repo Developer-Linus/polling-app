@@ -15,13 +15,7 @@ import { useAuth } from "@/components/auth/auth-provider"
 import { DatabaseService } from "@/lib/database.service"
 import { PollWithUserVote } from "@/lib/database.types"
 import { ArrowLeft, Plus, Trash2, Save } from "lucide-react"
-
-interface EditablePollOption {
-  id: string
-  text: string
-  vote_count: number
-  position: number
-}
+import { EditablePollOption } from "@/lib/types"
 
 export default function EditPollPage() {
   const params = useParams()

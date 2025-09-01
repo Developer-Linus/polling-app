@@ -13,11 +13,7 @@ import { useAuth } from "@/components/auth/auth-provider"
 import { DatabaseService } from "@/lib/database.service"
 import { Plus, Trash2, ArrowLeft, X } from "lucide-react"
 import Link from "next/link"
-
-interface PollOption {
-  id: string
-  text: string
-}
+import { PollOption } from "@/lib/types"
 
 export default function CreatePollPage() {
   const router = useRouter()

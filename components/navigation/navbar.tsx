@@ -4,28 +4,20 @@ import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/components/auth/auth-provider"
 import { LogoutButton } from "@/components/auth/logout-button"
 import { 
   BarChart3, 
   Plus, 
-  User, 
   Menu, 
   X, 
   Home,
-  Settings,
   LogOut,
   LogIn,
   UserPlus
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-
-interface NavItem {
-  label: string
-  href: string
-  icon: React.ComponentType<{ className?: string }>
-}
+import { NavItem } from "@/lib/types"
 
 const navigationItems: NavItem[] = [
   {

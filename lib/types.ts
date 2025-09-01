@@ -62,9 +62,8 @@ export interface AuthResponse {
   error: string | null;
 }
 
-// Legacy poll types (deprecated - use database types instead)
-/** @deprecated Use Poll from database.types.ts */
-export type PollStatus = 'active' | 'closed' | 'draft';
+// Poll status types (used by utility functions)
+export type PollStatus = 'active' | 'closed' | 'draft' | 'expired';
 
 /** @deprecated Use CreatePollRequest from database.types.ts */
 export interface CreatePollData {
@@ -148,6 +147,55 @@ export interface VotingComponentProps {
   hasVoted: boolean
   isVoting: boolean
   selectedOption?: string
+}
+
+export interface ProtectedRouteProps {
+  children: React.ReactNode
+  redirectTo?: string
+}
+
+export interface PageWrapperProps {
+  children: React.ReactNode
+  className?: string
+  maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl" | "full"
+  padding?: "none" | "sm" | "md" | "lg"
+}
+
+export interface MainLayoutProps {
+  children: React.ReactNode
+  showNavbar?: boolean
+}
+
+export interface LogoutButtonProps {
+  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
+  size?: "default" | "sm" | "lg" | "icon"
+  className?: string
+  showIcon?: boolean
+  redirectTo?: string
+  children?: React.ReactNode
+  onClick?: () => void
+}
+
+export interface AuthContextType {
+  user: User | null
+  isAuthenticated: boolean
+  isLoading: boolean
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
+  register: (email: string, password: string, name: string) => Promise<{ success: boolean; error?: string }>
+  logout: () => Promise<void>
+}
+
+// Form-specific interfaces
+export interface PollOption {
+  id: string
+  text: string
+}
+
+export interface EditablePollOption {
+  id: string
+  text: string
+  vote_count: number
+  position: number
 }
 
 // Navigation Types

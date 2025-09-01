@@ -2,11 +2,7 @@
 
 import { ReactNode } from "react"
 import { Navbar } from "@/components/navigation/navbar"
-
-interface MainLayoutProps {
-  children: ReactNode
-  showNavbar?: boolean
-}
+import { MainLayoutProps } from "@/lib/types"
 
 export function MainLayout({ 
   children, 

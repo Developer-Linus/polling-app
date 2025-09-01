@@ -1,18 +1,9 @@
 "use client"
 
 import React, { createContext, useContext, useState, useEffect } from 'react'
-import { User } from '@/lib/types'
+import { User, AuthContextType } from '@/lib/types'
 import { auth, supabase } from '@/lib/supabase'
 import type { User as SupabaseUser } from '@supabase/supabase-js'
-
-interface AuthContextType {
-  user: User | null
-  isAuthenticated: boolean
-  isLoading: boolean
-  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>
-  register: (email: string, password: string, name: string) => Promise<{ success: boolean; error?: string }>
-  logout: () => Promise<void>
-}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 

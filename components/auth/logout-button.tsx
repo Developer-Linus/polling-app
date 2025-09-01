@@ -4,14 +4,7 @@ import { Button } from "@/components/ui/button"
 import { useAuth } from "./auth-provider"
 import { useRouter } from "next/navigation"
 import { LogOut } from "lucide-react"
-
-interface LogoutButtonProps {
-  variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link"
-  size?: "default" | "sm" | "lg" | "icon"
-  className?: string
-  showIcon?: boolean
-  redirectTo?: string
-}
+import { LogoutButtonProps } from "@/lib/types"
 
 export function LogoutButton({ 
   variant = "ghost", 

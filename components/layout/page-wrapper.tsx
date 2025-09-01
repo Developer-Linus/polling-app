@@ -1,12 +1,6 @@
 import { ReactNode } from "react"
 import { cn } from "@/lib/utils"
-
-interface PageWrapperProps {
-  children: ReactNode
-  className?: string
-  maxWidth?: "sm" | "md" | "lg" | "xl" | "2xl" | "full"
-  padding?: "none" | "sm" | "md" | "lg"
-}
+import { PageWrapperProps } from "@/lib/types"
 
 const maxWidthClasses = {
   sm: "max-w-sm",
