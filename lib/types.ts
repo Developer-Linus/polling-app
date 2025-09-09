@@ -186,11 +186,6 @@ export interface AuthContextType {
 }
 
 // Form-specific interfaces
-export interface PollOption {
-  id: string
-  text: string
-}
-
 export interface EditablePollOption {
   id: string
   text: string

@@ -17,7 +17,7 @@ import { ProtectedRoute } from "@/components/auth/protected-route"
 // Authentication and data imports
 import { useAuth } from "@/components/auth/auth-provider"
 import { DatabaseService } from "@/lib/database.service"
-import { Poll } from "@/lib/database.types"
+import { PollWithResults } from "@/lib/database.types"
 
 // Icon imports
 import { Plus, BarChart3, Users, Eye, Edit, Trash2 } from "lucide-react"
@@ -53,7 +53,7 @@ interface PollStats {
  * Interface for dashboard state management
  */
 interface DashboardState {
-  polls: Poll[]
+  polls: PollWithResults[]
   isLoading: boolean
   error: string | null
   deletingPollId: string | null
@@ -63,7 +63,7 @@ interface DashboardState {
  * Props interface for PollCard component
  */
 interface PollCardProps {
-  poll: Poll
+  poll: PollWithResults
   onDelete: (pollId: string) => void
   isDeleting: boolean
 }
@@ -111,7 +111,7 @@ const PollCard = memo<PollCardProps>(({ poll, onDelete, isDeleting }) => {
         <div className="flex justify-between items-center flex-wrap gap-2">
           {/* Poll metadata */}
           <div className="flex items-center gap-4 text-sm text-gray-600">
-            <span>{(poll as any).total_votes || 0} responses</span>
+            <span>{poll.total_votes || 0} responses</span>
             <span>Created {formattedDate}</span>
           </div>
           
@@ -227,7 +227,7 @@ const useDashboard = (userId: string | undefined) => {
  * Custom hook for calculating poll statistics
  * Memoizes expensive calculations to prevent unnecessary recalculations
  */
-const usePollStats = (polls: Poll[]): PollStats => {
+const usePollStats = (polls: PollWithResults[]): PollStats => {
   return useMemo(() => {
     if (!Array.isArray(polls)) {
       return { totalPolls: 0, totalResponses: 0, activePolls: 0 }
@@ -235,7 +235,7 @@ const usePollStats = (polls: Poll[]): PollStats => {
     
     return {
       totalPolls: polls.length,
-      totalResponses: polls.reduce((sum, poll) => sum + ((poll as any).total_votes || 0), 0),
+      totalResponses: polls.reduce((sum, poll) => sum + (poll.total_votes || 0), 0),
       activePolls: polls.filter(poll => poll.status === "active").length
     }
   }, [polls])
@@ -362,7 +362,7 @@ StatsCards.displayName = 'StatsCards'
  * Handles different states: loading, error, empty, and populated
  */
 interface PollsListProps {
-  polls: Poll[]
+  polls: PollWithResults[]
   isLoading: boolean
   error: string | null
   onDeletePoll: (pollId: string) => void

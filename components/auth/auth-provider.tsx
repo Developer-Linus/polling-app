@@ -25,11 +25,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Get initial session
     const getInitialSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session?.user) {
-        setUser(convertSupabaseUser(session.user))
+      try {
+        const { data: { session } } = await supabase.auth.getSession()
+        if (session?.user) {
+          setUser(convertSupabaseUser(session.user))
+        }
+      } catch (error) {
+        console.error('Failed to get initial session:', error)
+      } finally {
+        setIsLoading(false)
       }
-      setIsLoading(false)
     }
 
     getInitialSession()
@@ -56,16 +61,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (error) {
         console.error('Login error:', error)
-        setIsLoading(false)
         
-        // Provide user-friendly error messages
+        // Map error status codes to user-friendly messages
         let userMessage = 'Login failed. Please try again.'
-        if (error.message.includes('Invalid login credentials')) {
-          userMessage = 'Invalid email or password. Please check your credentials.'
-        } else if (error.message.includes('Email not confirmed')) {
-          userMessage = 'Please check your email and confirm your account before signing in.'
-        } else if (error.message.includes('Too many requests')) {
+        const status = error?.status || (error as any)?.code
+        
+        if (status === 429) {
           userMessage = 'Too many login attempts. Please wait a moment before trying again.'
+        } else if (status === 400 || status === 401) {
+          userMessage = 'Invalid email or password. Please check your credentials.'
+        } else if (status === 403) {
+          userMessage = 'Please check your email and confirm your account before signing in.'
         }
         
         return { success: false, error: userMessage }
@@ -75,53 +81,68 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(convertSupabaseUser(data.user))
       }
       
-      setIsLoading(false)
       return { success: true }
     } catch (error) {
       console.error('Unexpected login error:', error)
-      setIsLoading(false)
       return { success: false, error: 'An unexpected error occurred. Please try again.' }
+    } finally {
+      setIsLoading(false)
     }
   }
 
   const register = async (email: string, password: string, name: string) => {
     setIsLoading(true)
     try {
-      const { data, error } = await auth.signUp(email, password)
+      // Pass metadata directly to signUp
+      const { data, error } = await auth.signUp(email, password, { data: { name } })
       
       if (error) {
         console.error('Registration error:', error)
-        setIsLoading(false)
         
         // Provide user-friendly error messages
         let userMessage = 'Registration failed. Please try again.'
-        if (error.message.includes('User already registered')) {
-          userMessage = 'An account with this email already exists. Please sign in instead.'
-        } else if (error.message.includes('Password should be at least')) {
-          userMessage = 'Password must be at least 6 characters long.'
-        } else if (error.message.includes('Invalid email')) {
-          userMessage = 'Please enter a valid email address.'
-        } else if (error.message.includes('Signup is disabled')) {
-          userMessage = 'Account registration is currently disabled. Please contact support.'
+        
+        // In production, use generic messages to prevent account enumeration
+        if (process.env.NODE_ENV === 'production') {
+          userMessage = 'Registration failed. Please try again or sign in.'
+        } else {
+          // Detailed messages only in development
+          if (error.message.includes('User already registered')) {
+            userMessage = 'An account with this email already exists. Please sign in instead.'
+          } else if (error.message.includes('Password should be at least')) {
+            userMessage = 'Password must be at least 6 characters long.'
+          } else if (error.message.includes('Invalid email')) {
+            userMessage = 'Please enter a valid email address.'
+          } else if (error.message.includes('Signup is disabled')) {
+            userMessage = 'Account registration is currently disabled. Please contact support.'
+          }
         }
         
         return { success: false, error: userMessage }
       }
       
-      // Update user metadata with name
+      // Set user immediately after successful signUp
       if (data.user) {
-        await supabase.auth.updateUser({
-          data: { name }
-        })
-        setUser(convertSupabaseUser(data.user))
+        const convertedUser = convertSupabaseUser(data.user)
+        // Set name in local state immediately
+        setUser({ ...convertedUser, name })
+        
+        // Try to update user metadata as fallback, but don't block on failure
+        try {
+          await supabase.auth.updateUser({
+            data: { name }
+          })
+        } catch (updateError) {
+          console.warn('Failed to update user metadata, but signup was successful:', updateError)
+        }
       }
       
-      setIsLoading(false)
       return { success: true }
     } catch (error) {
       console.error('Unexpected registration error:', error)
-      setIsLoading(false)
       return { success: false, error: 'An unexpected error occurred during registration. Please try again.' }
+    } finally {
+      setIsLoading(false)
     }
   }
 

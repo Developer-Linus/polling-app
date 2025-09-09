@@ -34,10 +34,11 @@ export const createSupabaseClient = () => {
 
 // Auth helper functions
 export const auth = {
-  signUp: async (email: string, password: string) => {
+  signUp: async (email: string, password: string, options?: { data?: Record<string, any> }) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
+      options,
     })
     return { data, error }
   },

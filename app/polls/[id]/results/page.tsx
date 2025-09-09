@@ -162,7 +162,7 @@ export default function PollResultsPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {poll.poll_options
+            {[...poll.poll_options]
               .sort((a, b) => (b.vote_count || 0) - (a.vote_count || 0))
               .map((option, index) => {
                 const percentage = getVotePercentage(option.vote_count || 0, poll.total_votes)

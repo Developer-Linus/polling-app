@@ -12,6 +12,7 @@ import { useAuth } from "@/components/auth/auth-provider"
 import { DatabaseService } from "@/lib/database.service"
 import { ArrowLeft, Share2, Users, Calendar } from "lucide-react"
 import type { PollWithUserVote } from "@/lib/database.types"
+import toast from "react-hot-toast"
 
 export default function PollViewPage() {
   const params = useParams()
@@ -66,10 +67,14 @@ export default function PollViewPage() {
     return total > 0 ? Math.round((votes / total) * 100) : 0
   }
 
-  const handleShare = () => {
+  const handleShare = async () => {
     const url = window.location.href
-    navigator.clipboard.writeText(url)
-    alert("Poll link copied to clipboard!")
+    try {
+      await navigator.clipboard.writeText(url)
+      toast.success('Poll link copied to clipboard!')
+    } catch (error) {
+      toast.error('Failed to copy link to clipboard')
+    }
   }
 
   if (isLoading) {

@@ -100,18 +100,18 @@ export function Navbar() {
               </LogoutButton>
             ) : (
               <div className="flex items-center space-x-2">
-                <Link href="/auth/login">
-                  <Button variant="ghost" size="sm" className="flex items-center space-x-2">
+                <Button asChild variant="ghost" size="sm" className="flex items-center space-x-2">
+                  <Link href="/auth/login">
                     <LogIn className="h-4 w-4" />
                     <span>Sign In</span>
-                  </Button>
-                </Link>
-                <Link href="/auth/register">
-                  <Button size="sm" className="flex items-center space-x-2">
+                  </Link>
+                </Button>
+                <Button asChild size="sm" className="flex items-center space-x-2">
+                  <Link href="/auth/register">
                     <UserPlus className="h-4 w-4" />
                     <span>Sign Up</span>
-                  </Button>
-                </Link>
+                  </Link>
+                </Button>
               </div>
             )}
 
