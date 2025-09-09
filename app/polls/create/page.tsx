@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -27,10 +27,25 @@ export default function CreatePollPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const [shouldRedirect, setShouldRedirect] = useState(false)
+
+  // Handle safe redirect with cleanup
+  useEffect(() => {
+    if (!shouldRedirect) return
+
+    const timerId = setTimeout(() => {
+      router.push('/dashboard')
+    }, 2000)
+
+    // Cleanup function to prevent navigation after unmount
+    return () => {
+      clearTimeout(timerId)
+    }
+  }, [shouldRedirect, router])
 
   const addOption = () => {
     const newOption: PollOption = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       text: ""
     }
     setOptions([...options, newOption])
@@ -74,10 +89,8 @@ export default function CreatePollPage() {
       // Show success message
       setSuccess(`Poll "${createdPoll.title}" created successfully!`)
       
-      // Redirect to dashboard after a brief delay
-      setTimeout(() => {
-        router.push('/dashboard')
-      }, 2000)
+      // Trigger safe redirect with cleanup
+      setShouldRedirect(true)
     } catch (err) {
       console.error('Failed to create poll:', err)
       setError(err instanceof Error ? err.message : 'Failed to create poll. Please try again.')
