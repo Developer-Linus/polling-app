@@ -9,7 +9,7 @@ export function MainLayout({
   showNavbar = true
 }: MainLayoutProps) {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {showNavbar && <Navbar />}
       <main className={showNavbar ? "" : "min-h-screen"}>
         {children}

@@ -35,19 +35,19 @@ export default function Home() {
     <MainLayout>
       <div className="min-h-screen">
         {/* Hero Section */}
-        <section className="bg-gradient-to-br from-blue-50 to-indigo-100 py-20">
+        <section className="section-hero">
           <PageWrapper>
             <div className="text-center">
               <div className="flex justify-center mb-6">
-                <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center">
+                <div className="icon-box-primary">
                   <BarChart3 className="h-8 w-8 text-white" />
                 </div>
               </div>
-              <h1 className="text-5xl font-bold text-gray-900 mb-6">
+              <h1>
                 Create Polls That
                 <span className="text-blue-600"> Matter</span>
               </h1>
-              <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
+              <p className="text-description container mb-8">
                 Build engaging polls, collect valuable feedback, and make data-driven decisions with our modern polling platform.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -68,13 +68,13 @@ export default function Home() {
         </section>
 
         {/* Features Section */}
-        <section className="py-20 bg-white">
+        <section className="section bg-white">
           <PageWrapper>
             <div className="text-center mb-16">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              <h2>
                 Everything you need to create amazing polls
               </h2>
-              <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+              <p className="text-description container">
                 Our platform provides all the tools you need to create, share, and analyze polls effectively.
               </p>
             </div>
@@ -83,15 +83,15 @@ export default function Home() {
               {features.map((feature, index) => {
                 const Icon = feature.icon
                 return (
-                  <Card key={index} className="text-center border-0 shadow-lg">
+                  <Card key={index} className="card-feature">
                     <CardHeader>
-                      <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center mx-auto mb-4">
+                      <div className="icon-box-secondary mx-auto mb-4">
                         <Icon className="h-6 w-6 text-blue-600" />
                       </div>
-                      <CardTitle className="text-lg">{feature.title}</CardTitle>
+                      <CardTitle><h3>{feature.title}</h3></CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <CardDescription className="text-gray-600">
+                      <CardDescription className="text-description">
                         {feature.description}
                       </CardDescription>
                     </CardContent>
@@ -103,13 +103,13 @@ export default function Home() {
         </section>
 
         {/* CTA Section */}
-        <section className="py-20 bg-gray-50">
+        <section className="section-cta">
           <PageWrapper>
             <div className="text-center">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              <h2>
                 Ready to start polling?
               </h2>
-              <p className="text-lg text-gray-600 mb-8 max-w-xl mx-auto">
+              <p className="text-description container mb-8">
                 Join thousands of users who trust PollApp for their polling needs.
               </p>
               <Link href="/auth/register">
@@ -127,7 +127,7 @@ export default function Home() {
           <PageWrapper>
             <div className="text-center">
               <div className="flex justify-center mb-4">
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                <div className="icon-box-primary w-8 h-8 rounded-lg">
                   <BarChart3 className="h-5 w-5 text-white" />
                 </div>
               </div>
