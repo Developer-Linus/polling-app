@@ -88,7 +88,7 @@ export default function Home() {
                       <div className="icon-box-secondary mx-auto mb-4">
                         <Icon className="h-6 w-6 text-blue-600" />
                       </div>
-                      <CardTitle><h3>{feature.title}</h3></CardTitle>
+                      <CardTitle>{feature.title}</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <CardDescription className="text-description">
